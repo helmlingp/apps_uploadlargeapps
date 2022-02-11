@@ -4,7 +4,7 @@
   .DESCRIPTION
     When run without parameters, this script will prompt for Workspace ONE UEM API Server, credentials, API Key and OG Name. 
     The script then iterates through the current (script) folder for JSON files that provide the necessary Application information.
-    Each JSON file is based upon the JSON requirements for the /api/mam/apps/internal/application API call.
+    Each JSON file is based upon the JSON requirements for the /API/mam/apps/internal/application API call.
     An additional element called "filepath" must be included with a value of the path and file name to upload.
   .EXAMPLE
     .\uploadlargeapps.ps1 
@@ -103,7 +103,7 @@ function Invoke-CreateChunkandUpload {
   # number of required parts:
   $originalFile = New-Object System.IO.FileInfo($inFilePath)
   $totalChunks = [int]($originalFile.Length / $PartSizeBytes) + 1
-  $digitCount = [int][Math]::Log10($totalChunks) + 1
+  #$digitCount = [int][Math]::Log10($totalChunks) + 1
 
   # read the original file and split into chunks:
   $reader = [IO.File]::OpenRead($inFilePath)
@@ -117,7 +117,7 @@ function Invoke-CreateChunkandUpload {
       # read a chunk
       $bytesRead = $reader.Read($buffer, 0, $buffer.Length)
       
-      Write-host "`n","Reading chunk $count" -ForegroundColor White
+      Write-host "`n","Reading chunk $count of $totalChunks" -ForegroundColor White
       $output = $buffer
 
       # did we read less than the expected bytes?
@@ -155,7 +155,7 @@ function Invoke-CreateChunkandUpload {
       }
       catch
       {
-          throw "Unable to upload file $inFilePath"
+          throw "Unable to upload file`n`n`tExiting"
       }
       #get TRANSID & add to $chunkproperties
       $transaction_id = $response.TranscationId
@@ -267,7 +267,7 @@ function Invoke-CreateApp{
     write-host "Created Internal App $appname" -ForegroundColor White
   }
   catch {
-    throw "Unable to create app from upload chunk $transaction_id with file $inFilePath"
+    throw "Unable to create app from upload chunk"
   }
   return $createapp
 }

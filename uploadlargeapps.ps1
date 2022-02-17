@@ -55,7 +55,7 @@ $PartSizeBytes = 1MB
 $current_path = $PSScriptRoot;
 if($PSScriptRoot -eq ""){
     #PSScriptRoot only popuates if the script is being run.  Default to default location if empty
-    $current_path = "C:\Temp";
+    $current_path = ".";
 }
 
 Function Invoke-setupServerAuth {
@@ -91,6 +91,86 @@ Function Invoke-setupServerAuth {
     write-host "APIKey: $script:APIKey"
     write-host "OG Name: $script:OGName"
   }
+}
+
+function Invoke-GetOG {
+  param(
+    [Parameter(Mandatory=$true)]
+    [string]$OGName
+  )
+  #Search for the OG Name and return GroupUUID and GroupID attributes.
+  #Present list if multiple OGs with those search characters and allow selection
+
+  $url = "$script:server/API/system/groups/search?name=$OGName"
+  $header = @{'aw-tenant-code' = $script:APIKey;'Authorization' = $script:cred;'accept' = 'application/json;version=2';'Content-Type' = 'application/json'}
+  try {
+    $OGSearch = Invoke-RestMethod -Method Get -Uri $url.ToString() -Headers $header
+  }
+  catch {
+    throw "Server Authentication or Server Connection Failure`n`n`tExiting"
+  }
+
+  $OGSearchOGs = $OGSearch.OrganizationGroups
+  $OGSearchTotal = $OGSearch.TotalResults
+  if ($OGSearchTotal -eq 1){
+    $Choice = 0
+  } elseif ($OGSearchTotal -gt 1) {
+    $ValidChoices = 0..($OGSearchOGs.Count -1)
+    $ValidChoices += 'Q'
+    Write-Host "`nMultiple OGs found. Please select an OG from the list:" -ForegroundColor Yellow
+    $Choice = ''
+    while ([string]::IsNullOrEmpty($Choice)) {
+
+      $i = 0
+      foreach ($OG in $OGSearchOGs) {
+        Write-Host ('{0}: {1}       {2}       {3}' -f $i, $OG.name, $OG.GroupId, $OG.Country)
+        $i += 1
+      }
+
+      $Choice = Read-Host -Prompt 'Type the number that corresponds to the Baseline to report on or Press "Q" to quit'
+      if ($Choice -in $ValidChoices) {
+        if ($Choice -eq 'Q'){
+          Write-host " Exiting Script"
+          exit
+        } else {
+          $Choice = $Choice
+        }
+      } else {
+        [console]::Beep(1000, 300)
+        Write-host ('    [ {0} ] is NOT a valid selection.' -f $Choice)
+        Write-host '    Please try again ...'
+        pause
+
+        $Choice = ''
+      }
+    }
+  }
+  return $OGSearchOGs[$Choice]
+}
+
+function Get-App {
+  param(
+    [Parameter(Mandatory=$true)]
+    [string]$appname,
+    [Parameter(Mandatory=$true)]
+    [string]$filename,
+    [Parameter(Mandatory=$true)]
+    [string]$groupid
+  )
+  $bundle_id = ""
+  $appsearch = ""
+  #Search to see if existing app so we can "Add Version"
+  $url = "$script:server/API/mam/apps/search?applicationname=$appname&locationgroupid=$groupid&platform=WinRT"
+  $header = @{'aw-tenant-code' = $script:APIKey;'Authorization' = $script:cred;'accept' = 'application/json';'Content-Type' = 'application/json'}
+  try {
+    $appSearch = Invoke-RestMethod -Method Get -Uri $url.ToString() -Headers $header
+    write-host "Searching for $appname with filename: $filename" -ForegroundColor Green
+  }
+  catch {
+    throw "Server Authentication or Server Connection Failure`n`n`tExiting"
+  }
+
+  return $appSearch
 }
 
 function Invoke-CreateChunkandUpload {
@@ -168,90 +248,9 @@ function Invoke-CreateChunkandUpload {
   return $transaction_id
 }
 
-function Invoke-GetOG {
-  param(
-    [Parameter(Mandatory=$true)]
-    [string]$OGName
-  )
-  #Search for the OG Name and return GroupUUID and GroupID attributes.
-  #Present list if multiple OGs with those search characters and allow selection
-
-  $url = "$script:server/API/system/groups/search?name=$OGName"
-  $header = @{'aw-tenant-code' = $script:APIKey;'Authorization' = $script:cred;'accept' = 'application/json;version=2';'Content-Type' = 'application/json'}
-  try {
-    $OGSearch = Invoke-RestMethod -Method Get -Uri $url.ToString() -Headers $header
-  }
-  catch {
-    throw "Server Authentication or Server Connection Failure`n`n`tExiting"
-  }
-
-  $OGSearchOGs = $OGSearch.OrganizationGroups
-  $OGSearchTotal = $OGSearch.TotalResults
-  if ($OGSearchTotal -eq 1){
-    $Choice = 0
-  } elseif ($OGSearchTotal -gt 1) {
-    $ValidChoices = 0..($OGSearchOGs.Count -1)
-    $ValidChoices += 'Q'
-    Write-Host "`nMultiple OGs found. Please select an OG from the list:" -ForegroundColor Yellow
-    $Choice = ''
-    while ([string]::IsNullOrEmpty($Choice)) {
-
-      $i = 0
-      foreach ($OG in $OGSearchOGs) {
-        Write-Host ('{0}: {1}       {2}       {3}' -f $i, $OG.name, $OG.GroupId, $OG.Country)
-        $i += 1
-      }
-
-      $Choice = Read-Host -Prompt 'Type the number that corresponds to the Baseline to report on or Press "Q" to quit'
-      if ($Choice -in $ValidChoices) {
-        if ($Choice -eq 'Q'){
-          Write-host " Exiting Script"
-          exit
-        } else {
-          $Choice = $Choice
-        }
-      } else {
-        [console]::Beep(1000, 300)
-        Write-host ('    [ {0} ] is NOT a valid selection.' -f $Choice)
-        Write-host '    Please try again ...'
-        pause
-
-        $Choice = ''
-      }
-    }
-  }
-  return $OGSearchOGs[$Choice]
-}
-
-function Get-App {
-  param(
-    [Parameter(Mandatory=$true)]
-    [string]$appname,
-    [Parameter(Mandatory=$true)]
-    [string]$filename,
-    [Parameter(Mandatory=$true)]
-    [string]$groupid
-  )
-  $bundle_id = ""
-  $appsearch = ""
-  #Search to see if existing app so we can "Add Version"
-  $url = "$script:server/API/mam/apps/search?applicationname=$appname&locationgroupid=$groupid&platform=WinRT"
-  $header = @{'aw-tenant-code' = $script:APIKey;'Authorization' = $script:cred;'accept' = 'application/json';'Content-Type' = 'application/json'}
-  try {
-    $appSearch = Invoke-RestMethod -Method Get -Uri $url.ToString() -Headers $header
-    write-host "Searching for $appname $filename" -ForegroundColor Green
-  }
-  catch {
-    throw "Server Authentication or Server Connection Failure`n`n`tExiting"
-  }
-
-  return $appSearch
-}
 
 function Invoke-CreateApp{
   param(
-    [Parameter(Mandatory=$true)]
-    [string]$transaction_id,
     [Parameter(Mandatory=$true)]
     $appproperties
   )
@@ -293,7 +292,7 @@ foreach ($j in $jsons) {
   $inFilePath = "$filePath/$filename"
   $appproperties.PSObject.Properties.Remove('filepath')
   #check if existing app & version and get bundle_id from existing app
-  $appsearch = Get-App -appname $appname -groupid $groupid -filename $filename
+  $appsearch = Get-App -appname $appname -filename $filename -groupid $groupid
   if($appSearch.Length -eq 0){
     $upload = $true
     write-host "No existing apps with this name" -ForegroundColor White
@@ -314,7 +313,8 @@ foreach ($j in $jsons) {
       } else {
         $upload = $true
         $bundle_id = $app.BundleId
-        $appproperties.bundle_id = $bundle_id
+        #$appproperties.bundle_id = $bundle_id
+        $appproperties.organization_group_uuid = $groupuuid
       }
     }
   }
@@ -323,8 +323,10 @@ foreach ($j in $jsons) {
     #upload in chunks
     [string]$transaction_id = Invoke-CreateChunkandUpload -inFilePath $inFilePath
     if($transaction_id){
+      $appproperties.transaction_id = $transaction_id
+      
       #create app
-      $createdapp = Invoke-CreateApp -transaction_id $transaction_id -appproperties $appproperties
+      $createdapp = Invoke-CreateApp -appproperties $appproperties
       write-host "Completed uploading $appname version $actual_file_version","`n" -ForegroundColor Green
       $appproperties = ""
       $appname = ""

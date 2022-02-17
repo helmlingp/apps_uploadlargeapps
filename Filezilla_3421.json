@@ -1,6 +1,6 @@
 {
   "filepath": "/Volumes/PHELMLING/Software/Apps/FileZilla",
-  "transaction_id": "7e2e1e1d-4eef-4ea1-8048-60c390569c09",
+  "transaction_id": "",
   "blob_id": 0,
   "device_type": 12,
   "application_name": "FileZilla FTP Client",
@@ -20,7 +20,7 @@
   "developer_email": "",
   "developer_phone": "",
   "auto_update_version": false,
-  "organization_group_uuid": "08c383ed-a04d-42d2-8cbf-49218a4b7612",
+  "organization_group_uuid": "",
   "enable_provisioning": false,
   "upload_via_link": false,
   "bundle_id": "",

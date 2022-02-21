@@ -1,0 +1,172 @@
+{
+  "transaction_id": "string",
+  "blob_id": 0,
+  "device_type": 0,
+  "application_name": "string",
+  "supported_models": {
+    "model": [
+      {
+        "model_id": 0,
+        "model_name": "string"
+      }
+    ]
+  },
+  "push_mode": 0,
+  "description": "string",
+  "support_email": "string",
+  "support_phone": "string",
+  "developer_name": "string",
+  "developer_email": "string",
+  "developer_phone": "string",
+  "auto_update_version": true,
+  "organization_group_uuid": "00000000-0000-0000-0000-000000000000",
+  "enable_provisioning": true,
+  "upload_via_link": true,
+  "bundle_id": "string",
+  "actual_file_version": "string",
+  "app_uem_version": "string",
+  "build_version": "string",
+  "file_name": "string",
+  "supported_processor_architecture": "string",
+  "deployment_param": {
+    "command_line_arguments": "string",
+    "install_timeout_in_minutes": 0,
+    "retry_count": 0,
+    "retry_interval_in_minutes": 0,
+    "install_context": 0
+  },
+  "dependency_file": true,
+  "deployment_options": {
+    "when_to_install": {
+      "data_contigencies": [
+        {
+          "criteria_type": 0,
+          "app_criteria": {
+            "application_identifier": "string",
+            "version_condition": 0,
+            "major_version": 0,
+            "minor_version": 0,
+            "revision_number": 0,
+            "build_number": 0
+          },
+          "file_criteria": {
+            "path": "string",
+            "version_condition": 0,
+            "major_version": 0,
+            "minor_version": 0,
+            "revision_number": 0,
+            "build_number": 0,
+            "modified_on": "string"
+          },
+          "registry_criteria": {
+            "path": "string",
+            "key_name": "string",
+            "key_type": 0,
+            "key_value": "string"
+          },
+          "logical_condition": 0
+        }
+      ],
+      "disk_space_required_in_kb": 0,
+      "device_power_required": 0,
+      "ram_required_in_mb": 0,
+      "cpu_usage": 0
+    },
+    "how_to_install": {
+      "install_context": 0,
+      "install_command": "string",
+      "admin_privileges": true,
+      "device_restart": 0,
+      "retry_count": 0,
+      "retry_interval_in_minutes": 0,
+      "install_timeout_in_minutes": 0,
+      "installer_reboot_exit_code": "string",
+      "installer_success_exit_code": "string",
+      "restart_deadline_in_days": 0
+    },
+    "when_to_call_install_complete": {
+      "use_additional_criteria": true,
+      "identify_application_by": 0,
+      "criteria_list": [
+        {
+          "criteria_type": 0,
+          "app_criteria": {
+            "application_identifier": "string",
+            "version_condition": 0,
+            "major_version": 0,
+            "minor_version": 0,
+            "revision_number": 0,
+            "build_number": 0
+          },
+          "file_criteria": {
+            "path": "string",
+            "version_condition": 0,
+            "major_version": 0,
+            "minor_version": 0,
+            "revision_number": 0,
+            "build_number": 0,
+            "modified_on": "string"
+          },
+          "registry_criteria": {
+            "path": "string",
+            "key_name": "string",
+            "key_type": 0,
+            "key_value": "string"
+          },
+          "logical_condition": 0
+        }
+      ],
+      "custom_script": {
+        "script_type": 0,
+        "command_to_run_script": "string",
+        "custom_script_file_blob_id": 0,
+        "success_exit_code": 0
+      }
+    }
+  },
+  "files_options": {
+    "app_dependencies_list": [
+      {
+        "name": "string",
+        "application_dependencyId": 0
+      }
+    ],
+    "app_transform_list": [
+      {
+        "transform_id": 0,
+        "transform_file_name": "string",
+        "transform_file_blob_id": 0
+      }
+    ],
+    "app_patches_list": [
+      {
+        "patch_file_name": "string",
+        "patch_file_blob_id": 0,
+        "patch_type": 0,
+        "build_version": "string",
+        "is_active": true
+      }
+    ],
+    "application_uninstall_process": {
+      "use_custom_script": true,
+      "custom_script": {
+        "custom_script_type": 0,
+        "uninstall_command": "string",
+        "uninstall_script_blob_id": 0
+      }
+    }
+  },
+  "carryover_assignments": true,
+  "iconblob_uuid": "string",
+  "application_source": 0,
+  "criticality": 0,
+  "category_list": {
+    "category": [
+      {
+        "category_id": 0,
+        "name": "string"
+      }
+    ]
+  },
+  "ear_app_update_mode": 0
+}

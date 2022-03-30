@@ -5,7 +5,7 @@
     When run without parameters, this script will prompt for Workspace ONE UEM API Server, credentials, API Key and OG Name. 
     The script then iterates through the current (script) folder for JSON files that provide the necessary Application information.
     Each JSON file is based upon the JSON requirements for the /API/mam/apps/internal/application API call.
-    An additional element called "filepath" must be included with a value of the path and file name to upload.
+    An additional element called "filepath" must be included with a value of the path and file name to upload. See the examples provided in this repo.
   .EXAMPLE
     .\uploadlargeapps.ps1 
         -Server https://asXXX.awmdm.com/ 
@@ -35,7 +35,7 @@
     Filename:       uploadlargeapps.ps1
     GitHub:         https://github.com/helmlingp/apps_uploadlargeapps
 #>
-#[CmdletBinding()]
+
 param (
     [Parameter(Mandatory=$false)]
     [string]$Username,
@@ -49,7 +49,6 @@ param (
     [string]$ApiKey
 )
 
-$Debug = $false
 [string]$psver = $PSVersionTable.PSVersion
 $PartSizeBytes = 1MB
 $current_path = $PSScriptRoot;
@@ -107,7 +106,7 @@ function Invoke-GetOG {
     $OGSearch = Invoke-RestMethod -Method Get -Uri $url.ToString() -Headers $header
   }
   catch {
-    throw "Server Authentication or Server Connection Failure`n`n`tExiting"
+    throw "Server Authentication or Server Connection Failure $($_.Exception.Message)`n`n`tExiting"
   }
 
   $OGSearchOGs = $OGSearch.OrganizationGroups
@@ -153,24 +152,20 @@ function Get-App {
     [Parameter(Mandatory=$true)]
     [string]$appname,
     [Parameter(Mandatory=$true)]
-    [string]$filename,
-    [Parameter(Mandatory=$true)]
     [string]$groupid
   )
-  $bundle_id = ""
   $appsearch = ""
   #Search to see if existing app so we can "Add Version"
   $url = "$script:server/API/mam/apps/search?applicationname=$appname&locationgroupid=$groupid&platform=WinRT"
   $header = @{'aw-tenant-code' = $script:APIKey;'Authorization' = $script:cred;'accept' = 'application/json';'Content-Type' = 'application/json'}
   try {
     $appSearch = Invoke-RestMethod -Method Get -Uri $url.ToString() -Headers $header
-    write-host "Searching for $appname with filename: $filename" -ForegroundColor Green
   }
   catch {
-    throw "Server Authentication or Server Connection Failure`n`n`tExiting"
+    throw "Server Authentication or Server Connection Failure $($_.Exception.Message)`n`n`tExiting"
   }
 
-  return $appSearch
+  return $appSearch.Application
 }
 
 function Invoke-CreateChunkandUpload {
@@ -178,7 +173,6 @@ function Invoke-CreateChunkandUpload {
     [Parameter(Mandatory=$true)]
     [string]$inFilePath
   )
-  write-host "Beginning Application Upload" -ForegroundColor Green
   # get the original file size and calculate the
   # number of required parts:
   $originalFile = New-Object System.IO.FileInfo($inFilePath)
@@ -235,7 +229,7 @@ function Invoke-CreateChunkandUpload {
       }
       catch
       {
-          throw "Unable to upload file`n`n`tExiting"
+          throw "Unable to upload file $($_.Exception.Message)`n`n`tExiting"
       }
       #get TRANSID & add to $chunkproperties
       $transaction_id = $response.TranscationId
@@ -266,7 +260,7 @@ function Invoke-CreateApp{
     write-host "Created Internal App $appname" -ForegroundColor White
   }
   catch {
-    throw "Unable to create app from upload chunk"
+    throw "Unable to create app from upload chunk $($_.Exception.Message)"
   }
   return $createapp
 }
@@ -284,43 +278,71 @@ $groupid = $getOG.Id
 $jsons = Get-ChildItem -Path "$current_path\*.json" -Recurse
 foreach ($j in $jsons) {
   #read attributes from json and remove "filepath" element from in memory object
-  $upload = $false
+  
   $appproperties = Get-Content -Path $j -Raw | ConvertFrom-Json
   $appname = $appproperties.application_name
   $filePath = $appproperties.filepath
   $filename = $appproperties.file_name
   $inFilePath = "$filePath/$filename"
   $appproperties.PSObject.Properties.Remove('filepath')
-  #check if existing app & version and get bundle_id from existing app
-  $appsearch = Get-App -appname $appname -filename $filename -groupid $groupid
-  if($appSearch.Length -eq 0){
-    $upload = $true
-    write-host "No existing apps with this name" -ForegroundColor White
-    $appproperties.bundle_id = ""
-  } else {
-    #search in $appsearch for same file_name and actual_file_version
-    $file_name = $appproperties.file_name
-    $actual_file_version = $appproperties.actual_file_version
-    
-    foreach ($app in $appsearch.Application){
-      $appsearchfilename = $app.ApplicationFileName
-      $appsearchactualfileversion = $app.ActualFileVersion
-      if($appsearchfilename -eq $file_name -AND $appsearchactualfileversion -eq $actual_file_version) {
-        #do not upload chunk or create app as it already exists
-        write-host "Existing app with same version and filename, not uploading" -ForegroundColor Yellow
-        $upload = $false
-        break
-      } else {
-        $upload = $true
-        $bundle_id = $app.BundleId
-        #$appproperties.bundle_id = $bundle_id
-        $appproperties.organization_group_uuid = $groupuuid
-      }
-    }
+  $appproperties.organization_group_uuid = $groupuuid
+
+  $extn = [IO.Path]::GetExtension($inFilePath)
+  if($extn -eq ".MSI" ){
+    #Build MSI version number from detection criteria as storing in ActualFileVersion within properties is not accepted by API
+    $major_version = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.major_version
+    $minor_version = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.minor_version
+    $revision_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.revision_number
+    $build_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.build_number
+    $appversion = "$major_version.$minor_version.$revision_number.$build_number"
+    #remove version info etc from appproperties as it is dynamically obtained when uploading MSIs
+    $appproperties.actual_file_version = ""
+    $appproperties.app_uem_version = ""
+    $appproperties.build_version = ""
+  }elseif($extn -eq ".EXE" -or $extn -eq ".ZIP"){
+    $appversion = $appproperties.actual_file_version
   }
-  #write-host "$upload"
+
+  #check if existing app & version and get bundle_id from existing app
+  #Don't upload the app if it already exists. 
+  write-host "Searching for $appname with filename: $filename version: $appversion and extension: $extn" -ForegroundColor Green
+  $appsearch = Get-App -appname $appname -groupid $groupid
+
+  #Refine to match extension
+  $appsearchextn = $appsearch | Where-Object {($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
+
+  #Refine to not match version and match extension
+  $appsearchversionextn = $appsearch | Where-Object {$_.AppVersion -eq $appversion -AND ($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
+
+  #Refine to match extension and not version
+  $appsearchnotversionextn = $appsearch | Where-Object {$_.AppVersion -ne $appversion -AND ($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
+  
+  if($appsearch.Length -eq 0){
+    #Search by Name. If not in the list upload = true
+    [bool]$upload = $true
+  } 
+  elseif($appsearchextn.Length -eq 0){
+    #Search by File Extension. If not same extension upload = true
+    [bool]$upload = $true
+  }
+  elseif($appsearchversionextn.Length -ne 0){
+    #Search by Version and File Extension. If same extension and same version upload = false
+    [bool]$upload = $false
+  }
+  elseif($appsearchnotversionextn.Length -ne 0) {
+    #Search by Version and File Extension. If same extension and not same version upload = true
+    [bool]$upload = $true
+    #get Bundle_Id and set if not MSI
+    if($extn -eq ".EXE" -or $extn -eq ".ZIP"){
+      $bundle_id = ($appsearchnotversionextn | select-object ApplicationName,AppVersion,BundleId | Sort-Object @{E="AppVersion";Descending=$true})[0].BundleId
+      $appproperties.bundle_id = $bundle_id
+    }
+    
+  }
+  if($upload -eq $false){write-host "Application already exits, not uploading" -ForegroundColor Blue}
   if($upload -eq $true){
     #upload in chunks
+    write-host "Beginning Application Upload" -ForegroundColor Yellow
     [string]$transaction_id = Invoke-CreateChunkandUpload -inFilePath $inFilePath
     if($transaction_id){
       $appproperties.transaction_id = $transaction_id
@@ -333,6 +355,13 @@ foreach ($j in $jsons) {
       $filePath = ""
       $filename = ""
       $inFilePath = ""
+      $bundle_id = ""
+      $appversion = ""
+      $appsearch = ""
+      $appsearchextn = ""
+      $appsearchversionextn = ""
+      $appsearchnotversionextn = ""
+      $transaction_id = ""
     }
   }
 }

@@ -1,0 +1,93 @@
+{
+    "filepath": "/Volumes/PHELMLING/Software/Microsoft/Office/Office 2019",
+    "transaction_id": "",
+    "blob_id": 0,
+    "device_type": 12,
+    "application_name": "Microsoft Office Pro Plus 2019",
+    "supported_models": {
+        "model": [
+            {
+                "model_id": 83,
+                "model_name": "Desktop"
+            }
+        ]
+    },
+    "push_mode": 0,
+    "description": "Office Productivity Tool",
+    "support_email": "",
+    "support_phone": "",
+    "developer_name": "",
+    "developer_email": "",
+    "developer_phone": "",
+    "auto_update_version": false,
+    "organization_group_uuid": "",
+    "enable_provisioning": false,
+    "upload_via_link": false,
+    "bundle_id": "",
+    "actual_file_version": "1.0.0.0",
+    "app_uem_version": "1.0.0.0",
+    "build_version": "",
+    "file_name": "OfficeProPlus2019.zip",
+    "supported_processor_architecture": "x64",
+    "dependency_file": false,
+    "deployment_options": {
+        "when_to_install": {
+            "data_contigencies": [],
+            "disk_space_required_in_kb": 2048000,
+            "device_power_required": 40,
+            "ram_required_in_mb": 4096,
+            "cpu_usage": 0
+        },
+        "how_to_install": {
+            "install_context": 1,
+            "install_command": "setup.exe /Configure Configuration-Office2019ProPlus.xml",
+            "admin_privileges": true,
+            "device_restart": 1,
+            "retry_count": 3,
+            "retry_interval_in_minutes": 5,
+            "install_timeout_in_minutes": 6,
+            "installer_reboot_exit_code": "3010",
+            "installer_success_exit_code": "0",
+            "restart_deadline_in_days": 0
+        },
+        "when_to_call_install_complete": {
+            "use_additional_criteria": true,
+            "identify_application_by": 1,
+            "criteria_list": [
+                {
+                    "criteria_type": 3,
+                    "file_criteria": {
+                        "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE",
+                        "version_condition": 0,
+                        "major_version": 0,
+                        "minor_version": 0,
+                        "revision_number": 0,
+                        "build_number": 0,
+                        "modified_on": "1999/02/02"
+                    },
+                    "logical_condition": 0
+                }
+            ]
+        }
+    },
+    "files_options": {
+        "app_dependencies_list": [],
+        "app_transform_list": [],
+        "app_patches_list": [],
+        "application_uninstall_process": {
+            "use_custom_script": true,
+            "custom_script": {
+                "custom_script_type": 1,
+                "uninstall_command": "setup.exe /Configure Uninstall-OfficeProPlus2019.xml",
+                "uninstall_script_blob_id": 0
+            }
+        }
+    },
+    "carryover_assignments": true,
+    "iconblob_uuid": "",
+    "application_source": 1,
+    "category_list": {
+        "category": []
+    },
+    "ear_app_update_mode": 0
+}

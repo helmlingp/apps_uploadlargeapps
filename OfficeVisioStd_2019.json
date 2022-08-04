@@ -3,7 +3,7 @@
     "transaction_id": "",
     "blob_id": 0,
     "device_type": 12,
-    "application_name": "Microsoft Office Pro Plus 2019",
+    "application_name": "Microsoft Office Visio Std 2019",
     "supported_models": {
         "model": [
             {
@@ -22,12 +22,13 @@
     "auto_update_version": false,
     "organization_group_uuid": "",
     "enable_provisioning": false,
-    "upload_via_link": false,
+    "upload_via_link": true,
+    "ApplicationUrl": "https://url.path.com/VisioStd2019.zip",
     "bundle_id": "",
-    "actual_file_version": "16.0.0.0",
-    "app_uem_version": "16.0.0.0",
+    "actual_file_version": "1.0.0.0",
+    "app_uem_version": "",
     "build_version": "",
-    "file_name": "OfficeProPlus2019.zip",
+    "file_name": "VisioStd2019.zip",
     "supported_processor_architecture": "x64",
     "dependency_file": false,
     "deployment_options": {
@@ -45,7 +46,7 @@
             "device_restart": 1,
             "retry_count": 3,
             "retry_interval_in_minutes": 5,
-            "install_timeout_in_minutes": 60,
+            "install_timeout_in_minutes": 6,
             "installer_reboot_exit_code": "3010",
             "installer_success_exit_code": "0",
             "restart_deadline_in_days": 0
@@ -58,8 +59,8 @@
                     "criteria_type": 3,
                     "file_criteria": {
                         "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE",
-                        "version_condition": 2,
-                        "major_version": 16,
+                        "version_condition": 0,
+                        "major_version": 0,
                         "minor_version": 0,
                         "revision_number": 0,
                         "build_number": 0,

@@ -57,7 +57,7 @@
         {
           "criteria_type": 3,
           "file_criteria": {
-            "path": "C:\\Program Files\\FileZilla FTP Client\\FileZilla.exe",
+            "path": "%PROGRAMFILES%\\FileZilla FTP Client\\FileZilla.exe",
             "version_condition": 1,
             "major_version": 3,
             "minor_version": 4,

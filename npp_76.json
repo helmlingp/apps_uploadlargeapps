@@ -1,9 +1,9 @@
 {
-    "filepath": "/Volumes/PHELMLING/Software/Microsoft/Office/Office 2019",
+    "filepath": "/Volumes/PHELMLING/Software/Apps",
     "transaction_id": "",
     "blob_id": 0,
     "device_type": 12,
-    "application_name": "Microsoft Office Pro Plus 2019",
+    "application_name": "Notepad++",
     "supported_models": {
         "model": [
             {
@@ -13,7 +13,7 @@
         ]
     },
     "push_mode": 0,
-    "description": "Office Productivity Tool",
+    "description": "Text Edit Tool",
     "support_email": "",
     "support_phone": "",
     "developer_name": "",
@@ -24,28 +24,28 @@
     "enable_provisioning": false,
     "upload_via_link": false,
     "bundle_id": "",
-    "actual_file_version": "16.0.0.0",
-    "app_uem_version": "16.0.0.0",
+    "actual_file_version": "7.6.0.0",
+    "app_uem_version": "7.6.0.0",
     "build_version": "",
-    "file_name": "OfficeProPlus2019.zip",
+    "file_name": "npp.7.6.Installer.x64.exe",
     "supported_processor_architecture": "x64",
     "dependency_file": false,
     "deployment_options": {
         "when_to_install": {
             "data_contigencies": [],
-            "disk_space_required_in_kb": 2048000,
-            "device_power_required": 40,
-            "ram_required_in_mb": 4096,
+            "disk_space_required_in_kb": 1024,
+            "device_power_required": 10,
+            "ram_required_in_mb": 50,
             "cpu_usage": 0
         },
         "how_to_install": {
             "install_context": 1,
-            "install_command": "setup.exe /Configure Configuration-Office2019ProPlus.xml",
+            "install_command": "npp.7.6.Installer.x64.exe /S /D '%PROGRAMFILES%\\Notepad++'",
             "admin_privileges": true,
             "device_restart": 1,
             "retry_count": 3,
             "retry_interval_in_minutes": 5,
-            "install_timeout_in_minutes": 60,
+            "install_timeout_in_minutes": 6,
             "installer_reboot_exit_code": "3010",
             "installer_success_exit_code": "0",
             "restart_deadline_in_days": 0
@@ -57,10 +57,10 @@
                 {
                     "criteria_type": 3,
                     "file_criteria": {
-                        "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE",
-                        "version_condition": 2,
-                        "major_version": 16,
-                        "minor_version": 0,
+                        "path": "%PROGRAMFILES%\\Notepad++\\notepad++.exe",
+                        "version_condition": 1,
+                        "major_version": 7,
+                        "minor_version": 6,
                         "revision_number": 0,
                         "build_number": 0,
                         "modified_on": "1999/02/02"
@@ -78,7 +78,7 @@
             "use_custom_script": true,
             "custom_script": {
                 "custom_script_type": 1,
-                "uninstall_command": "setup.exe /Configure Uninstall-OfficeProPlus2019.xml",
+                "uninstall_command": "%PROGRAMFILES%\\Notepad++\\uninstall.exe /S",
                 "uninstall_script_blob_id": 0
             }
         }

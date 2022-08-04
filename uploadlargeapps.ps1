@@ -48,9 +48,9 @@ param (
     [Parameter(Mandatory=$false)]
     [string]$ApiKey
 )
-
+$Debug = $false
 [string]$psver = $PSVersionTable.PSVersion
-$PartSizeBytes = 1MB
+$PartSizeBytes = 10MB
 $current_path = $PSScriptRoot;
 if($PSScriptRoot -eq ""){
     #PSScriptRoot only popuates if the script is being run.  Default to default location if empty
@@ -83,6 +83,10 @@ Function Invoke-setupServerAuth {
   $private:encoded = [Convert]::ToBase64String($private:encoding)
   $script:cred = "Basic $encoded"
 
+  $combined = $Username + ":" + $Password
+  $encoding = [System.Text.Encoding]::ASCII.GetBytes($combined)
+  $encoded = [Convert]::ToBase64String($encoding)
+  $cred = "Basic $encoded"
   if($Debug){ 
     Write-host `n"Server Auth" 
     write-host "WS1 Host: $script:Server"
@@ -168,7 +172,7 @@ function Get-App {
   return $appSearch.Application
 }
 
-function Invoke-CreateChunkandUpload {
+function Invoke-ChunkandUpload {
   param(
     [Parameter(Mandatory=$true)]
     [string]$inFilePath
@@ -242,6 +246,30 @@ function Invoke-CreateChunkandUpload {
   return $transaction_id
 }
 
+Function Invoke-UploadfromLink{
+  param(
+    [Parameter(Mandatory=$true)]
+    $ApplicationUrl,
+    [Parameter(Mandatory=$true)]
+    $filename,
+    [Parameter(Mandatory=$true)]
+    $groupid
+  )
+  $escdappLink = [uri]::EscapeDataString("$ApplicationUrl")
+  $url = "$server/API/mam/blobs/uploadblob?fileName=$filename&organizationGroupId=$groupid&moduleType=Application&fileLink=$escdappLink&accessVia=Direct"
+  $header = @{'aw-tenant-code' = $APIKey;'Authorization' = $cred;'accept' = 'application/json';'Content-Type' = 'multipart/form-data'}
+
+  try {
+    $createblobid = Invoke-RestMethod -Method Post -Uri $url.ToString() -Headers $header
+    $blob_id = $createblobid.Value
+    write-host "Created BlobId $blob_id for filename $filename" -ForegroundColor White
+  }
+  catch {
+    throw "Unable to create blob from upload link $($_.Exception.Message)"
+  }
+  return $blob_id
+
+}
 
 function Invoke-CreateApp{
   param(
@@ -251,7 +279,8 @@ function Invoke-CreateApp{
 
   #$appjson = Convertfrom-json -InputObject $appProperties
   $json = ConvertTo-Json -InputObject $appproperties -Depth 100
-  
+  write-host $json
+
   # Create App with BlobID
   $url = "$script:server/API/mam/apps/internal/application"
   $header = @{'aw-tenant-code' = $script:APIKey;'Authorization' = $script:cred;'accept' = 'application/json';'Content-Type' = 'application/json'}
@@ -287,9 +316,21 @@ foreach ($j in $jsons) {
   $appproperties.PSObject.Properties.Remove('filepath')
   $appproperties.organization_group_uuid = $groupuuid
 
-  $extn = [IO.Path]::GetExtension($inFilePath)
-  if($extn -eq ".MSI" ){
-    #Build MSI version number from detection criteria as storing in ActualFileVersion within properties is not accepted by API
+  $upload_via_link = $appproperties.upload_via_link
+  $ApplicationUrl = $appproperties.ApplicationUrl
+  $extn = ($filename).substring($($filename).length - 4, 4)
+
+  #$extn = [IO.Path]::GetExtension($inFilePath)
+  if($upload_via_link -eq $true -and $ApplicationUrl -and $extn -eq ".MSI"){
+    #set Actual_file_version when uploading MSI via link
+    $major_version = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.major_version
+    $minor_version = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.minor_version
+    $revision_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.revision_number
+    $build_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.build_number
+    $appversion = "$major_version.$minor_version.$revision_number.$build_number"
+    $appproperties.actual_file_version = $appversion
+  }elseif($extn -eq ".MSI"){
+    #Build MSI version number from detection criteria as storing in ActualFileVersion within properties is not accepted by API if not uploaded by Link
     $major_version = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.major_version
     $minor_version = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.minor_version
     $revision_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.revision_number
@@ -306,16 +347,17 @@ foreach ($j in $jsons) {
   #check if existing app & version and get bundle_id from existing app
   #Don't upload the app if it already exists. 
   write-host "Searching for $appname with filename: $filename version: $appversion and extension: $extn" -ForegroundColor Green
-  $appsearch = Get-App -appname $appname -groupid $groupid
-
-  #Refine to match extension
-  $appsearchextn = $appsearch | Where-Object {($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
-
-  #Refine to not match version and match extension
-  $appsearchversionextn = $appsearch | Where-Object {$_.AppVersion -eq $appversion -AND ($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
-
-  #Refine to match extension and not version
-  $appsearchnotversionextn = $appsearch | Where-Object {$_.AppVersion -ne $appversion -AND ($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
+  $appsearch = Get-App -appname "$appname" -groupid $groupid
+  if($appsearch.Length -gt 0){
+    #Refine to match extension
+    $appsearchextn = $appsearch | Where-Object {($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
+    
+    #Refine to not match version and match extension
+    $appsearchversionextn = $appsearch | Where-Object {$_.AppVersion -eq $appversion -AND ($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
+    
+    #Refine to match extension and not version
+    $appsearchnotversionextn = $appsearch | Where-Object {$_.AppVersion -ne $appversion -AND ($_.ApplicationFileName).substring($($_.ApplicationFileName).length - 4, 4) -eq $extn}
+  }
   
   if($appsearch.Length -eq 0){
     #Search by Name. If not in the list upload = true
@@ -337,31 +379,46 @@ foreach ($j in $jsons) {
       $bundle_id = ($appsearchnotversionextn | select-object ApplicationName,AppVersion,BundleId | Sort-Object @{E="AppVersion";Descending=$true})[0].BundleId
       $appproperties.bundle_id = $bundle_id
     }
-    
   }
+
   if($upload -eq $false){write-host "Application already exits, not uploading" -ForegroundColor Blue}
   if($upload -eq $true){
-    #upload in chunks
-    write-host "Beginning Application Upload" -ForegroundColor Yellow
-    [string]$transaction_id = Invoke-CreateChunkandUpload -inFilePath $inFilePath
-    if($transaction_id){
-      $appproperties.transaction_id = $transaction_id
-      
+    if($upload_via_link -eq $true -and $ApplicationUrl){
+      #upload from link
+      [string]$blob_id = Invoke-UploadfromLink -ApplicationUrl $ApplicationUrl -filename $filename -groupid $groupid
+      $appproperties.blob_id = $blob_id
+      #Set BundleId if new app
+      if (!($bundle_id)){
+        [String]$bundle_id = "0"
+        $appproperties.bundle_id = $bundle_id
+      }
+      #create app
+      Invoke-CreateApp -appproperties $appproperties
+      write-host "Completed uploading $appname version $appversion","`n" -ForegroundColor Green
+    } else {
+      #upload in chunks
+      write-host "Beginning Application Upload" -ForegroundColor Yellow
+      [string]$transaction_id = Invoke-ChunkandUpload -inFilePath $inFilePath
+      if($transaction_id){
+        $appproperties.transaction_id = $transaction_id
+      }
       #create app
       $createdapp = Invoke-CreateApp -appproperties $appproperties
       write-host "Completed uploading $appname version $actual_file_version","`n" -ForegroundColor Green
-      $appproperties = ""
-      $appname = ""
-      $filePath = ""
-      $filename = ""
-      $inFilePath = ""
-      $bundle_id = ""
-      $appversion = ""
-      $appsearch = ""
-      $appsearchextn = ""
-      $appsearchversionextn = ""
-      $appsearchnotversionextn = ""
-      $transaction_id = ""
     }
+    
+    $appproperties = ""
+    $appname = ""
+    $filePath = ""
+    $filename = ""
+    $inFilePath = ""
+    $bundle_id = ""
+    $appversion = ""
+    $appsearch = ""
+    $appsearchextn = ""
+    $appsearchversionextn = ""
+    $appsearchnotversionextn = ""
+    $transaction_id = ""
+    $ApplicationUrl = ""
   }
 }

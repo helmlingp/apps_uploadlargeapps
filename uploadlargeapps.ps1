@@ -181,6 +181,7 @@ function Invoke-ChunkandUpload {
   # number of required parts:
   $originalFile = New-Object System.IO.FileInfo($inFilePath)
   $totalChunks = [int]($originalFile.Length / $PartSizeBytes) + 1
+  $filesize = $originalFile.Length
   #$digitCount = [int][Math]::Log10($totalChunks) + 1
 
   # read the original file and split into chunks:

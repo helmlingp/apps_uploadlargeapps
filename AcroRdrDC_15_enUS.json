@@ -23,6 +23,7 @@
     "organization_group_uuid": "",
     "enable_provisioning": false,
     "upload_via_link": false,
+    "ApplicationUrl": "",
     "bundle_id": "",
     "actual_file_version": "",
     "app_uem_version": "",
@@ -53,7 +54,20 @@
         "when_to_call_install_complete": {
             "use_additional_criteria": false,
             "identify_application_by": 0,
-            "criteria_list": []
+            "criteria_list": [
+                {
+                  "criteria_type": 1,
+                  "app_criteria": {
+                    "application_identifier": "{4457B621-68C1-4B3D-6ECC-F905B42AA703}",
+                    "version_condition": 2,
+                    "major_version": 15,
+                    "minor_version": 7,
+                    "revision_number": 0,
+                    "build_number": 20033
+                  },
+                  "logical_condition": 0
+                }
+              ]
         }
     },
     "files_options": {
@@ -64,7 +78,7 @@
             "use_custom_script": false,
             "custom_script": {
                 "custom_script_type": 1,
-                "uninstall_command": "msiexec.exe /X {23170F69-40C1-2702-2107-000001000000}",
+                "uninstall_command": "msiexec.exe /X {4457B621-68C1-4B3D-6ECC-F905B42AA703}",
                 "uninstall_script_blob_id": 0
             }
         }

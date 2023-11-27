@@ -130,7 +130,7 @@ function Invoke-GetOG {
         $i += 1
       }
 
-      $Choice = Read-Host -Prompt 'Type the number that corresponds to the Baseline to report on or Press "Q" to quit'
+      $Choice = Read-Host -Prompt 'Type the number that corresponds to the OG or Press "Q" to quit'
       if ($Choice -in $ValidChoices) {
         if ($Choice -eq 'Q'){
           Write-host " Exiting Script"
@@ -181,7 +181,6 @@ function Invoke-ChunkandUpload {
   # number of required parts:
   $originalFile = New-Object System.IO.FileInfo($inFilePath)
   $totalChunks = [int]($originalFile.Length / $PartSizeBytes) + 1
-  $filesize = $originalFile.Length
   #$digitCount = [int][Math]::Log10($totalChunks) + 1
 
   # read the original file and split into chunks:
@@ -263,7 +262,9 @@ Function Invoke-UploadfromLink{
   try {
     $createblobid = Invoke-RestMethod -Method Post -Uri $url.ToString() -Headers $header
     $blob_id = $createblobid.Value
-    write-host "Created BlobId $blob_id for filename $filename" -ForegroundColor White
+    if($Debug){
+      write-host "Created BlobId $blob_id for filename $filename" -ForegroundColor White
+    }
   }
   catch {
     throw "Unable to create blob from upload link $($_.Exception.Message)"
@@ -280,19 +281,22 @@ function Invoke-CreateApp{
 
   #$appjson = Convertfrom-json -InputObject $appProperties
   $json = ConvertTo-Json -InputObject $appproperties -Depth 100
-  write-host $json
+  if($Debug){
+    write-host $json
+  }
 
   # Create App with BlobID
   $url = "$script:server/API/mam/apps/internal/application"
   $header = @{'aw-tenant-code' = $script:APIKey;'Authorization' = $script:cred;'accept' = 'application/json';'Content-Type' = 'application/json'}
-  try {
-    $createapp = Invoke-RestMethod -Method Post -Uri $url.ToString() -Headers $header -Body $json
+  
+  $createapp = Invoke-RestMethod -Method Post -Uri $url.ToString() -Headers $header -Body $json
+  if($createapp.status -ne 200){
+    write-host "Unable to create app from upload chunk $($createapp.Message)"
+  }else{
     write-host "Created Internal App $appname" -ForegroundColor White
+    return $createapp
   }
-  catch {
-    throw "Unable to create app from upload chunk $($_.Exception.Message)"
-  }
-  return $createapp
+  
 }
 
 #Main
@@ -306,10 +310,10 @@ $groupid = $getOG.Id
 
 #Search for JSON files and upload using chunkupload, then create app using app/internal/application
 $jsons = Get-ChildItem -Path "$current_path\*.json" -Recurse
-foreach ($j in $jsons) {
+foreach ($json in $jsons) {
   #read attributes from json and remove "filepath" element from in memory object
   
-  $appproperties = Get-Content -Path $j -Raw | ConvertFrom-Json
+  $appproperties = Get-Content -Path $json -Raw | ConvertFrom-Json
   $appname = $appproperties.application_name
   $filePath = $appproperties.filepath
   $filename = $appproperties.file_name
@@ -328,7 +332,7 @@ foreach ($j in $jsons) {
     $minor_version = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.minor_version
     $revision_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.revision_number
     $build_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.build_number
-    $appversion = "$major_version.$minor_version.$revision_number.$build_number"
+    $appversion = "$major_version.$minor_version.$build_number.$revision_number"
     $appproperties.actual_file_version = $appversion
   }elseif($extn -eq ".MSI"){
     #Build MSI version number from detection criteria as storing in ActualFileVersion within properties is not accepted by API if not uploaded by Link
@@ -336,7 +340,7 @@ foreach ($j in $jsons) {
     $minor_version = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.minor_version
     $revision_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.revision_number
     $build_number = $appproperties.deployment_options.when_to_call_install_complete.criteria_list.app_criteria.build_number
-    $appversion = "$major_version.$minor_version.$revision_number.$build_number"
+    $appversion = "$major_version.$minor_version.$build_number.$revision_number"
     #remove version info etc from appproperties as it is dynamically obtained when uploading MSIs
     $appproperties.actual_file_version = ""
     $appproperties.app_uem_version = ""
@@ -379,33 +383,56 @@ foreach ($j in $jsons) {
     if($extn -eq ".EXE" -or $extn -eq ".ZIP"){
       $bundle_id = ($appsearchnotversionextn | select-object ApplicationName,AppVersion,BundleId | Sort-Object @{E="AppVersion";Descending=$true})[0].BundleId
       $appproperties.bundle_id = $bundle_id
+      $appproperties.upload_via_link = $true
     }
   }
 
+  
   if($upload -eq $false){write-host "Application already exits, not uploading" -ForegroundColor Blue}
-  if($upload -eq $true){
+  elseif($upload -eq $true){
+    
     if($upload_via_link -eq $true -and $ApplicationUrl){
-      #upload from link
-      [string]$blob_id = Invoke-UploadfromLink -ApplicationUrl $ApplicationUrl -filename $filename -groupid $groupid
-      $appproperties.blob_id = $blob_id
-      #Set BundleId if new app
-      if (!($bundle_id)){
-        [String]$bundle_id = "0"
-        $appproperties.bundle_id = $bundle_id
+      # Test if URL is an application file that can be downloaded
+      $appURL = Invoke-WebRequest $ApplicationUrl -DisableKeepAlive -UseBasicParsing -Method Head
+      $testappURL = $appURL | Where-Object { $_.status -ne 200 -OR $_.contentType -notmatch "application"}
+      if(!$testappURL){write-host "Application installer files are not accessible, skipping" -ForegroundColor Red}
+      else {
+        #upload from link
+        [string]$blob_id = Invoke-UploadfromLink -ApplicationUrl $ApplicationUrl -filename $filename -groupid $groupid
+        $appproperties.blob_id = $blob_id
+        #Set BundleId if new app
+        if (!($bundle_id)){
+          [String]$bundle_id = "0"
+          $appproperties.bundle_id = $bundle_id
+        }
+        #create app
+        Invoke-CreateApp -appproperties $appproperties
+        if($Debug){
+          write-host "Completed uploading $appname version $appversion","`n" -ForegroundColor Green
+        }
       }
-      #create app
-      Invoke-CreateApp -appproperties $appproperties
-      write-host "Completed uploading $appname version $appversion","`n" -ForegroundColor Green
-    } else {
-      #upload in chunks
-      write-host "Beginning Application Upload" -ForegroundColor Yellow
-      [string]$transaction_id = Invoke-ChunkandUpload -inFilePath $inFilePath
-      if($transaction_id){
-        $appproperties.transaction_id = $transaction_id
+    } 
+    else {
+      #Test if inFilePath is accessible, otherwise skip with error
+      $testinFilePath = Test-Path -Path $inFilePath -PathType leaf
+    
+      if(!$testinFilePath){
+        write-host "Application files to upload are not accessible, skipping" -ForegroundColor Red
       }
-      #create app
-      $createdapp = Invoke-CreateApp -appproperties $appproperties
-      write-host "Completed uploading $appname version $actual_file_version","`n" -ForegroundColor Green
+      else {
+        #upload in chunks
+        write-host "Beginning Application Upload" -ForegroundColor Yellow
+        [string]$transaction_id = Invoke-ChunkandUpload -inFilePath $inFilePath
+        if($transaction_id){
+          $appproperties.transaction_id = $transaction_id
+        }
+        #create app
+        Invoke-CreateApp -appproperties $appproperties
+        if($Debug){
+          write-host "Completed uploading $appname version $actual_file_version","`n" -ForegroundColor Green
+        }
+      }
+      
     }
     
     $appproperties = ""
@@ -414,6 +441,7 @@ foreach ($j in $jsons) {
     $filename = ""
     $inFilePath = ""
     $bundle_id = ""
+    $actual_file_version
     $appversion = ""
     $appsearch = ""
     $appsearchextn = ""
@@ -421,5 +449,6 @@ foreach ($j in $jsons) {
     $appsearchnotversionextn = ""
     $transaction_id = ""
     $ApplicationUrl = ""
+    $upload_via_link = ""
   }
 }

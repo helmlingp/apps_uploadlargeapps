@@ -23,11 +23,12 @@
   "organization_group_uuid": "",
   "enable_provisioning": false,
   "upload_via_link": false,
+  "ApplicationUrl": "",
   "bundle_id": "",
   "actual_file_version": "",
   "app_uem_version": "",
   "build_version": "",
-  "file_name": "googlechromestandaloneenterprise64.msi",
+  "file_name": "googlechromestandaloneenterprise64_68.241.134.0.msi",
   "supported_processor_architecture": "x64",
   "dependency_file": false,
   "deployment_options": {
@@ -40,7 +41,7 @@
     },
     "how_to_install": {
       "install_context": 1,
-      "install_command": "msiexec.exe /I googlechromestandaloneenterprise64.msi /qn",
+      "install_command": "msiexec.exe /I googlechromestandaloneenterprise64_68.241.134.0.msi /qn",
       "admin_privileges": true,
       "device_restart": 1,
       "retry_count": 3,
@@ -59,10 +60,10 @@
           "app_criteria": {
             "application_identifier": "{4BD7AED9-ECD6-380B-93A4-BB9D96E90BDC}",
             "version_condition": 2,
-            "major_version": 103,
-            "minor_version": 0,
-            "revision_number": 66,
-            "build_number": 5060
+            "major_version": 68,
+            "minor_version": 241,
+            "revision_number": 0,
+            "build_number": 134
           },
           "logical_condition": 0
         }

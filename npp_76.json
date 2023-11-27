@@ -23,6 +23,7 @@
     "organization_group_uuid": "",
     "enable_provisioning": false,
     "upload_via_link": false,
+    "ApplicationUrl": "",
     "bundle_id": "",
     "actual_file_version": "7.6.0.0",
     "app_uem_version": "7.6.0.0",

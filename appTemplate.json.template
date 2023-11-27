@@ -22,6 +22,7 @@
   "organization_group_uuid": "00000000-0000-0000-0000-000000000000",
   "enable_provisioning": true,
   "upload_via_link": true,
+  "ApplicationUrl": "",
   "bundle_id": "string",
   "actual_file_version": "string",
   "app_uem_version": "string",

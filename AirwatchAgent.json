@@ -25,7 +25,7 @@
     "upload_via_link": true,
     "ApplicationUrl": "https://packages.vmware.com/wsone/AirwatchAgent.msi",
     "bundle_id": "",
-    "actual_file_version": "22.6.1.0",
+    "actual_file_version": "23.2.7.0",
     "app_uem_version": "",
     "build_version": "",
     "file_name": "AirwatchAgent.msi",
@@ -60,9 +60,9 @@
                 "app_criteria": {
                   "application_identifier": "{4457B621-68C1-4B3D-6ECC-F905B42AA703}",
                   "version_condition": 2,
-                  "major_version": 22,
-                  "minor_version": 6,
-                  "revision_number": 1,
+                  "major_version": 23,
+                  "minor_version": 2,
+                  "revision_number": 7,
                   "build_number": 0
                 },
                 "logical_condition": 0
